@@ -76,22 +76,22 @@ jobs:
           sudo snap install aws-cli --classic
           aws --version
 
-      - name: Assume Role
-        id: assume-role
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+      # - name: Assume Role
+      #   id: assume-role
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+      #     aws-region: us-east-1
 
-      - name: AWS Deployment
-        id: aws-testdeploy
-        env:
-          AWS_ACCOUNT_ID: ${{ needs.app-build.outputs.AWS_ACCOUNT_TEST_ID }}
-          BUCKET_NAME: ${{ needs.app-build.outputs.BUCKET_ORIGIN_TEST_NAME }}
-        run: |
-          echo "Provisioning the deployment on test evironment: $AWS_ACCOUNT_ID"
-          cd app
-          aws s3 sync . s3://$BUCKET_NAME
+      # - name: AWS Deployment
+      #   id: aws-testdeploy
+      #   env:
+      #     AWS_ACCOUNT_ID: ${{ needs.app-build.outputs.AWS_ACCOUNT_TEST_ID }}
+      #     BUCKET_NAME: ${{ needs.app-build.outputs.BUCKET_ORIGIN_TEST_NAME }}
+      #   run: |
+      #     echo "Provisioning the deployment on test evironment: $AWS_ACCOUNT_ID"
+      #     cd app
+      #     aws s3 sync . s3://$BUCKET_NAME
 
   post-deploy:
     runs-on: ubuntu-latest
