@@ -100,11 +100,18 @@ jobs:
       - name: Archive artifact
         id: archive-artifact
         run: |
-          tar -czvf app/release-artifact.tar.gz -C app dist/
           ls -la app
+          if [ -d app/dist ]; then
+            tar -czvf app/release-artifact.tar.gz -C app dist/
+            echo "artifact_file=app/release-artifact.tar.gz" >> $GITHUB_ENV
+          else
+            echo "artifact_file=" >> $GITHUB_ENV
+            echo "Directory app/dist does not exist, skipping artifact creation"
+          fi
 
       - name: Upload artifact
         id: upload-artifact
+        if: env.artifact_file != ''
         uses: actions/upload-artifact@v4
         with:
           name: release-artifact
