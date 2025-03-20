@@ -8,6 +8,11 @@ on:
 jobs:
   app-build:
     runs-on: ubuntu-latest
+    outputs:
+      BUCKET_ORIGIN_TEST_NAME: ${{ steps.config-pipe.outputs.BUCKET_ORIGIN_TEST_NAME }}
+      AWS_ACCOUNT_TEST_ID: ${{ steps.config-pipe.outputs.AWS_ACCOUNT_TEST_ID }}
+      USER_EMAIL: ${{ steps.config-pipe.outputs.USER_EMAIL }}
+      NODE_VERSION: ${{ steps.config-pipe.outputs.NODE_VERSION }}
 
     steps:
       - name: Checkout code
@@ -15,11 +20,6 @@ jobs:
 
       - name: Set up Pipeline
         id: config-pipe
-        outputs:
-          BUCKET_ORIGIN_TEST_NAME: ${{ steps.config-pipe.outputs.BUCKET_ORIGIN_TEST_NAME }}
-          AWS_ACCOUNT_TEST_ID: ${{ steps.config-pipe.outputs.AWS_ACCOUNT_TEST_ID }}
-          USER_EMAIL: ${{ steps.config-pipe.outputs.USER_EMAIL }}
-          NODE_VERSION: ${{ steps.config-pipe.outputs.NODE_VERSION }}
         run:
           BUCKET_ORIGIN_TEST_NAME=$(grep BUCKET_ORIGIN_TEST_NAME .config | cut -d '=' -f 2)
           echo "BUCKET_ORIGIN_TEST_NAME=$BUCKET_ORIGIN_TEST_NAME" >> $GITHUB_ENV
