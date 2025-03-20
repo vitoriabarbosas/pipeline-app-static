@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Getting older tags
-        id: calculate-tag
+        id: put-tag
         run: |
           git fetch --tags
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || echo "none")
@@ -172,7 +172,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ steps.put-tag.outputs.new_tag }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
