@@ -131,11 +131,18 @@ jobs:
       - name: Getting older tags
         id: calculate-tag
         run: |
-        
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          git fetch --tags
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || echo "none")
           echo "Latest tag: $latest_tag"
-          latest_version=${latest_tag#v}
-          echo "Latest version: $latest_version"
+          
+          echo "Latest tag: $latest_tag"
+          
+          if [ "$latest_tag" = "none" ]; then
+            new_tag="v0.1.0"
+          else
+            # Extract the version number from the latest tag
+            latest_version=${latest_tag#v}
+            echo "Latest version: $latest_version"
           
           # Increment the version number
           IFS='.' read -r -a version_parts <<< "$latest_version"
