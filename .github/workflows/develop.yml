@@ -34,8 +34,13 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: |
-          cd app 
-          npm install
+          |
+          if [ -f app/package.json ]; then
+            cd app
+            npm install
+          else
+            echo "package.json not found, skipping npm install"
+          fi
 
       - name: Run tests
         id: run-tests
