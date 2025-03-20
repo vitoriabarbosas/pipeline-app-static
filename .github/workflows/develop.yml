@@ -73,8 +73,9 @@ jobs:
       - name: Install AWS CLI
         id: install-cli
         run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
+          sudo snap install aws-cli --classic
+          aws --version
+          aws-cli/1.16.266 Python/3.5.2 Linux/5.0.0-37-generic botocore/1.13.2
 
       - name: Assume Role
         id: assume-role
