@@ -177,18 +177,6 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        if: steps.create-release.outputs.upload_url != ''
-        id: upload-release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/release-artifact.tar.gz
-          asset_name: release-artifact.tar.gz
-          asset_content_type: application/gzip
-
   production-aproval:
     runs-on: ubuntu-latest
     needs: release
@@ -196,7 +184,7 @@ jobs:
 
       - name: Install @octokit/core
         run: npm install @octokit/core
-        
+
       - name: Request Approval
         id: request-approval
         uses: actions/github-script@v5
