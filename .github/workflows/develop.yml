@@ -69,8 +69,8 @@ jobs:
       - name: Archive artifact
         id: archive-artifact
         run: |
-          cd app
-          tar -czvf release-artifact.tar.gz dist/
+          tar -czvf app/release-artifact.tar.gz -C app dist/
+          ls -la app
 
       - name: Upload artifact
         id: upload-artifact
