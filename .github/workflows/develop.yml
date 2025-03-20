@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  test-deployment:
+  app-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,6 +15,11 @@ jobs:
 
       - name: Set up Pipeline
         id: config-pipe
+        outputs:
+          BUCKET_ORIGIN_TEST_NAME: ${{ steps.config-pipe.outputs.BUCKET_ORIGIN_TEST_NAME }}
+          AWS_ACCOUNT_TEST_ID: ${{ steps.config-pipe.outputs.AWS_ACCOUNT_TEST_ID }}
+          USER_EMAIL: ${{ steps.config-pipe.outputs.USER_EMAIL }}
+          NODE_VERSION: ${{ steps.config-pipe.outputs.NODE_VERSION }}
         run:
           BUCKET_ORIGIN_TEST_NAME=$(grep BUCKET_ORIGIN_TEST_NAME .config | cut -d '=' -f 2)
           echo "BUCKET_ORIGIN_TEST_NAME=$BUCKET_ORIGIN_TEST_NAME" >> $GITHUB_ENV
@@ -48,6 +53,16 @@ jobs:
         #   cd app/tests
         #   npm test
 
+      - name: Build project
+        id: build-project
+        run: |
+          echo "Starting the Build Process" 
+          npm run build
+
+  aws-test-deployment:
+    runs-on: ubuntu-latest
+    needs: app-build
+    steps: 
       - name: Install AWS CLI
         id: install-cli
         run: |
@@ -61,16 +76,20 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: AWS Test Deployment
+      - name: AWS Deployment
         id: aws-testdeploy
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_TEST_ID }}
-          BUCKET_NAME: ${{ env.BUCKET_ORIGIN_TEST_NAME }}
+          AWS_ACCOUNT_ID: ${{ needs.app-build.outputs.AWS_ACCOUNT_TEST_ID }}
+          BUCKET_NAME: ${{ needs.app-build.outputs.BUCKET_ORIGIN_TEST_NAME }}
         run: |
+          echo "Provisioning the deployment on test evironment: $AWS_ACCOUNT_ID"
           cd app
           aws s3 sync . s3://$BUCKET_NAME
 
-      
+  post-deploy:
+    runs-on: ubuntu-latest
+    needs: aws-test-deployment
+    steps:
       - name: Archive artifact
         id: archive-artifact
         run: |
@@ -84,6 +103,10 @@ jobs:
           name: release-artifact
           path: app/release-artifact.tar.gz
 
+  release:
+    runs-on: ubuntu-latest
+    needs: post-deploy
+    steps:
       - name: Create GitHub Release
         id: create-release
         uses: actions/create-release@v1
@@ -107,22 +130,12 @@ jobs:
           asset_name: release-artifact.tar.gz
           asset_content_type: application/gzip
 
-      - name: Failure Notification
-        if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.example.com
-          server_port: 587
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: 'GitHub Actions Workflow Failed'
-          body: 'Houve um erro em sua pipeline! Acesse para conferir: '
-          to: ${{ env.USER_EMAIL }}
-          from: nttpipeline@example.com
-
+  production-aproval:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
       - name: Request Approval
         id: request-approval
-        if: steps.upload-release.conclusion == 'success'
         uses: actions/github-script@v5
         with:
           script: |
@@ -147,4 +160,20 @@ jobs:
         continue-on-error: true
         timeout-minutes: 60
 
+  notification:
+    runs-on: ubuntu-latest
+    needs: [app-build, aws-test-deployment, post-deploy, release, production-aproval]
+    steps:
+      - name: Failure Notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.example.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: 'GitHub Actions Workflow Failed'
+          body: 'Houve um erro em sua pipeline! Acesse para conferir: '
+          to: ${{ env.USER_EMAIL }}
+          from: nttpipeline@example.com
     
