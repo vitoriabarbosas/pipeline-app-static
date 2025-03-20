@@ -100,7 +100,6 @@ jobs:
       - name: Archive artifact
         id: archive-artifact
         run: |
-          ls -la app
           if [ -d app/dist ]; then
             tar -czvf app/release-artifact.tar.gz -C app dist/
             echo "artifact_file=app/release-artifact.tar.gz" >> $GITHUB_ENV
