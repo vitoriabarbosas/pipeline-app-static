@@ -189,8 +189,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.number }}
           body: |
             :wave: @team, please approve the updates on the Repository **${{ github.repository }}**.
           reactions: '+1,rocket'
