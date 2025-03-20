@@ -21,6 +21,7 @@ jobs:
       - name: Set up Pipeline
         id: config-pipe
         run:
+          echo "Reading the pipeline variables to start the configuration process"
           BUCKET_ORIGIN_TEST_NAME=$(grep BUCKET_ORIGIN_TEST_NAME .config | cut -d '=' -f 2)
           echo "BUCKET_ORIGIN_TEST_NAME=$BUCKET_ORIGIN_TEST_NAME" >> $GITHUB_ENV
           echo "AWS_ACCOUNT_TEST_ID=$AWS_ACCOUNT_TEST_ID" >> $GITHUB_ENV
@@ -39,6 +40,7 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: |
+          echo "Installing Application dependencies..."
           if [ -f app/package.json ]; then
             cd app
             npm install
@@ -49,15 +51,20 @@ jobs:
       - name: Run tests
         id: run-tests
         run: |
-          echo "Starting tests"
+          echo "Starting Application Tests"
         #   cd app/tests
         #   npm test
 
       - name: Build project
         id: build-project
         run: |
-          echo "Starting the Build Process" 
-          npm run build
+          echo "Starting the Build Process"
+          if [ -f app/package.json ]; then
+            cd app
+            npm run build
+          else
+            echo "package.json not found, skipping npm build"
+          fi
 
   aws-test-deployment:
     runs-on: ubuntu-latest
