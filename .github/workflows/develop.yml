@@ -27,35 +27,30 @@ jobs:
 
       - name: Set up Node.js
         id: setup-node
-        needs: config-pipe
         uses: actions/setup-node@v2
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         id: install-dependencies
-        needs: setup-node
         run: |
           cd app 
           npm install
 
       - name: Run tests
         id: run-tests
-        needs: install-dependencies
         run: |
           cd app/tests
           npm test
 
       - name: Install AWS CLI
         id: install-cli
-        needs: install-dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y awscli
 
       - name: Assume Role
         id: assume-role
-        needs: install-cli
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -63,7 +58,6 @@ jobs:
 
       - name: AWS Test Deployment
         id: aws-testdeploy
-        needs: assume-role
         env:
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_TEST_ID }}
           BUCKET_NAME: ${{ env.BUCKET_ORIGIN_TEST_NAME }}
@@ -73,26 +67,20 @@ jobs:
 
       
       - name: Archive artifact
-        if: success()
         id: archive-artifact
-        needs: aws-testdeploy
         run: |
           cd app
           tar -czvf release-artifact.tar.gz dist/
 
       - name: Upload artifact
-        if: success()
         id: upload-artifact
-        needs: archive-artifact
         uses: actions/upload-artifact@v2
         with:
           name: release-artifact
           path: app/release-artifact.tar.gz
 
       - name: Create GitHub Release
-        if: github.event_name == 'release'
         id: create-release
-        needs: upload-artifact
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -105,7 +93,6 @@ jobs:
       - name: Upload Release Asset
         if: steps.create_release.outputs.upload_url != ''
         id: upload-release
-        needs: create-release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -130,7 +117,7 @@ jobs:
 
       - name: Request Approval
         id: request-approval
-        needs: upload-release
+        if: steps.upload-release.conclusion == 'success'
         uses: actions/github-script@v5
         with:
           script: |
@@ -150,7 +137,6 @@ jobs:
             core.setOutput('review_url', review.html_url);
 
       - name: Approval Pending
-        needs: request-approval
         run: echo "Waiting for maintainer approval..."
         if: always()
         continue-on-error: true

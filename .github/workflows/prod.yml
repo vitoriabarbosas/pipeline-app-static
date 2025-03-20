@@ -45,7 +45,6 @@ jobs:
 
       - name: Set up Pipeline
         id: config-pipe
-        needs: verify_approval
         run:
           BUCKET_ORIGIN_PROD_NAME=$(grep BUCKET_ORIGIN_PROD_NAME .config | cut -d '=' -f 2)
           echo "BUCKET_ORIGIN_PROD_NAME=$BUCKET_ORIGIN_PROD_NAME" >> $GITHUB_ENV
@@ -63,7 +62,6 @@ jobs:
 
       - name: Assume Role
         id: assume-role
-        needs: install-cli
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -71,7 +69,6 @@ jobs:
 
       - name: AWS Deployment
         id: aws-deploy
-        needs: assume-role
         env:
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_PROD_ID }}
           BUCKET_NAME: ${{ env.BUCKET_ORIGIN_PROD_NAME }}
