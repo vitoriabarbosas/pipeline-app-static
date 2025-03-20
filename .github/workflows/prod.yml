@@ -1,0 +1,95 @@
+name: Production Deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Verify Maintainer Approval
+        id: verify_approval
+        uses: actions/github-script@v5
+        env: 
+          REPO_NAME: ${{ github.repository }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        with:
+          script: |
+            const { Octokit } = require("@octokit/core");
+            const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+            const pr_number = core.getInput('pr_number');
+            const { data: reviews } = await octokit.request('GET /repos/$REPO_NAME/pulls/{pull_number}/reviews', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr_number
+            });
+
+            const { data: maintainers } = await octokit.request('GET /orgs/ntt/teams/$REPO_OWNER/members', {
+              org: context.repo.owner,
+              team_slug: 'maintainers' 
+            });
+
+            const maintainer_logins = maintainers.map(member => member.login);
+            const approved_by_maintainer = reviews.some(review => 
+              maintainer_logins.includes(review.user.login) && review.state === 'APPROVED'
+            );
+
+            if (!approved_by_maintainer) {
+              throw new Error('PR has not been approved by a maintainer.');
+            }
+
+      - name: Set up Pipeline
+        id: config-pipe
+        needs: verify_approval
+        run:
+          BUCKET_ORIGIN_PROD_NAME=$(grep BUCKET_ORIGIN_PROD_NAME .config | cut -d '=' -f 2)
+          echo "BUCKET_ORIGIN_PROD_NAME=$BUCKET_ORIGIN_PROD_NAME" >> $GITHUB_ENV
+          AWS_ACCOUNT_PROD_ID=$(grep AWS_ACCOUNT_PROD_ID .config | cut -d '=' -f 2)
+          echo "AWS_ACCOUNT_PROD_ID=$AWS_ACCOUNT_PROD_ID" >> $GITHUB_ENV
+          NODE_VERSION=$(grep NODE_VERSION .config | cut -d '=' -f 2)
+          echo "NODE_VERSION=$NODE_VERSION" >> $GITHUB_ENV
+
+      - name: Install AWS CLI
+        id: install-cli
+        needs: config-pipe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Assume Role
+        id: assume-role
+        needs: install-cli
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: AWS Deployment
+        id: aws-deploy
+        needs: assume-role
+        env:
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_PROD_ID }}
+          BUCKET_NAME: ${{ env.BUCKET_ORIGIN_PROD_NAME }}
+        run: |
+          cd app
+          aws s3 sync . s3://$BUCKET_NAME
+
+      
+      - name: Failure Notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.example.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: 'GitHub Actions Workflow Failed'
+          body: 'Houve um erro em sua pipeline! Acesse para conferir: '
+          to: ${{ env.USER_EMAIL }}
+          from: nttpipeline@example.com
+

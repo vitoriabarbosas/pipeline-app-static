@@ -1,0 +1,159 @@
+name: Application Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Pipeline
+        id: config-pipe
+        run:
+          BUCKET_ORIGIN_TEST_NAME=$(grep BUCKET_ORIGIN_TEST_NAME .config | cut -d '=' -f 2)
+          echo "BUCKET_ORIGIN_TEST_NAME=$BUCKET_ORIGIN_TEST_NAME" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_TEST_ID=$AWS_ACCOUNT_TEST_ID" >> $GITHUB_ENV
+          AWS_ACCOUNT_TEST_ID=$(grep AWS_ACCOUNT_TEST_ID .config | cut -d '=' -f 2)
+          USER_EMAIL=$(grep USER_EMAIL .config | cut -d '=' -f 2)
+          echo "USER_EMAIL=$USER_EMAIL" >> $GITHUB_ENV
+          NODE_VERSION=$(grep NODE_VERSION .config | cut -d '=' -f 2)
+          echo "NODE_VERSION=$NODE_VERSION" >> $GITHUB_ENV
+
+      - name: Set up Node.js
+        id: setup-node
+        needs: config-pipe
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        id: install-dependencies
+        needs: setup-node
+        run: |
+          cd app 
+          npm install
+
+      - name: Run tests
+        id: run-tests
+        needs: install-dependencies
+        run: |
+          cd app/tests
+          npm test
+
+      - name: Install AWS CLI
+        id: install-cli
+        needs: install-dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Assume Role
+        id: assume-role
+        needs: install-cli
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: AWS Test Deployment
+        id: aws-testdeploy
+        needs: assume-role
+        env:
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_TEST_ID }}
+          BUCKET_NAME: ${{ env.BUCKET_ORIGIN_TEST_NAME }}
+        run: |
+          cd app
+          aws s3 sync . s3://$BUCKET_NAME
+
+      
+      - name: Archive artifact
+        if: success()
+        id: archive-artifact
+        needs: aws-testdeploy
+        run: |
+          cd app
+          tar -czvf release-artifact.tar.gz dist/
+
+      - name: Upload artifact
+        if: success()
+        id: upload-artifact
+        needs: archive-artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-artifact
+          path: app/release-artifact.tar.gz
+
+      - name: Create GitHub Release
+        if: github.event_name == 'release'
+        id: create-release
+        needs: upload-artifact
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        if: steps.create_release.outputs.upload_url != ''
+        id: upload-release
+        needs: create-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/release-artifact.tar.gz
+          asset_name: release-artifact.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Failure Notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.example.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: 'GitHub Actions Workflow Failed'
+          body: 'Houve um erro em sua pipeline! Acesse para conferir: '
+          to: ${{ env.USER_EMAIL }}
+          from: nttpipeline@example.com
+
+      - name: Request Approval
+        id: request-approval
+        needs: upload-release
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const { Octokit } = require("@octokit/core");
+            const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+            const { data: review } = await octokit.request('POST /repos/{owner}/{repo}/pulls', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Approval Required',
+              head: context.sha,
+              base: 'main',
+              body: 'Please approve this workflow run.',
+              maintainer_can_modify: true
+            });
+
+            core.setOutput('review_url', review.html_url);
+
+      - name: Approval Pending
+        needs: request-approval
+        run: echo "Waiting for maintainer approval..."
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 60
+
+    
