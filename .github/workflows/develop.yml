@@ -186,24 +186,14 @@ jobs:
         run: npm install @octokit/core
 
       - name: Request Approval
-        id: request-approval
-        uses: actions/github-script@v5
+        uses: peter-evans/create-or-update-comment@v1
         with:
-          script: |
-            const { Octokit } = require("@octokit/core");
-            const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-
-            const { data: review } = await octokit.request('POST /repos/{owner}/{repo}/pulls', {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'Approval Required',
-              head: context.sha,
-              base: 'main',
-              body: 'Please approve this workflow run.',
-              maintainer_can_modify: true
-            });
-
-            core.setOutput('review_url', review.html_url);
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            :wave: @team, please approve the updates on the Repository **${{ github.repository }}**.
+          reactions: '+1,rocket'
 
       - name: Approval Pending
         run: echo "Waiting for maintainer approval..."
