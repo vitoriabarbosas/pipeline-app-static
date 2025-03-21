@@ -3,8 +3,8 @@
 ![Fluxo da Pipeline de Aplicação, onde é possível entender a configuração dada a estrutura de repositório do usuario, iniciando um trigger no GitHub Actions, seguindo para o deploy na conta AWS. Este Deploy, necessita de um Bucket S3 pré existente, ao qual, poderá ser utilizado com a arquitetura sugerida: Route53, Certificado ACM, CloudFront com origem neste Bucket que irá conter os arquivos. Para garantir segurança, o CloudFront pode-se integrar com WAF e OAC, para que tenha acesso exclusivo ao Bucket.](/docs/poc.jpg)
 
 ## Requisitos 
-- Criação de Bucket S3 nas contas de teste e produção
-- Acesso nas Contas AWS a serem realizadas o deploy 
+- Criação de Bucket S3 nas contas de teste e produção.
+- Criação e configuração das IAM Roles para acesso nas Contas AWS a serem realizadas o deploy, dentro das secrets do repositório.
 
 ## Estrutura do repositório a ser utilizado pela pipeline
 
@@ -43,7 +43,7 @@ NODE_VERSION=14
 
 ## Diagrama das etapas da Pipeline 
 
-![](/docs/diagrama.png)
+![Um pipeline de CI/CD (Continuous Integration/Continuous Deployment) geralmente inclui as seguintes etapas: Integração Contínua (CI) e Entrega Contínua (CD). Na etapa de CI, temos o Checkout de Código, Instalação de dependências e configuração do ambiente de build. Execução de Testes, Compilação do código e geração de artefatos de build. Na etapa de Entrega Contínua (CD), temos o Deploy em Ambiente de Teste, Upload do Artefato, Criação da TAG do repositório e lançamento da release no repositório. Seguido para a Aprovação, que é necessária antes de prosseguir para a produção. Se aprovado, temos o Deploy em Produção: Implantação dos artefatos de build no ambiente de produção. Em caso de falha, é feito o Envio de notificações em caso de falhas em qualquer estágio do pipeline.](/docs/diagrama.png)
 
 [Clique aqui para acessar o arquivo do diagrama](/docs/diagramas.drawio)
 
