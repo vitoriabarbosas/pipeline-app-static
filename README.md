@@ -41,5 +41,13 @@ NODE_VERSION=14
 
 **Atenção: Não é permitida a customização das variáveis acima, por serem variáveis esperadas pela pipeline**
 
+## Diagrama das etapas da Pipeline 
+
+![](/docs/diagrama.drawio.png)
+
+[Clique aqui para acessar o arquivo do diagrama](/docs/diagrama.drawio)
+
+
+
 
 
