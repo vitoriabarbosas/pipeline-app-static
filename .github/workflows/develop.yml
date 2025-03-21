@@ -191,7 +191,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const { execSync } = require('child_process');
-            execSync(`gh workflow approve --repo ${{ github.repository }} --env production`);
+            execSync(`gh workflow approve --repo ${{ github.repository }}`);
 
       - name: Approval Pending
         run: echo "Waiting for maintainer approval..."
