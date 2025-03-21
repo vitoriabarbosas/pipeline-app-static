@@ -177,33 +177,33 @@ jobs:
           draft: false
           prerelease: false
 
-  production-aproval:
-    runs-on: ubuntu-latest
-    needs: release
-    steps:
+  #production-aproval:
+  #  runs-on: ubuntu-latest
+   # needs: release
+   # steps:
 
-      - name: Install @octokit/core
-        run: npm install @octokit/core
+     # - name: Install @octokit/core
+     #   run: npm install @octokit/core
 
-      - name: Request Approval
-        uses: actions/github-script@v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: | 
-            const { execSync } = require('child_process');
-            const repo = process.env.GITHUB_REPOSITORY; 
-            if (!repo) {
-              console.error("Erro: A variável GITHUB_REPOSITORY não está definida.");
-              process.exit(1);
-            }
+     # - name: Request Approval
+      #  uses: actions/github-script@v5
+    #    with:
+     #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #    script: | 
+       #     const { execSync } = require('child_process');
+        #    const repo = process.env.GITHUB_REPOSITORY; 
+         #   if (!repo) {
+        #      console.error("Erro: A variável GITHUB_REPOSITORY não está definida.");
+        #      process.exit(1);
+          #  }
 
-            execSync(`gh workflow approve --repo ${repo}`, { stdio: 'inherit' });
+          #  execSync(`gh workflow approve --repo ${repo}`, { stdio: 'inherit' });
 
-      - name: Approval Pending
-        run: echo "Waiting for maintainer approval..."
-        if: always()
-        continue-on-error: true
-        timeout-minutes: 60
+      #- name: Approval Pending
+      #  run: echo "Waiting for maintainer approval..."
+      #  if: always()
+      #  continue-on-error: true
+      #  timeout-minutes: 60
 
   notification:
     runs-on: ubuntu-latest
