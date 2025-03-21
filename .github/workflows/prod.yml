@@ -42,7 +42,14 @@ jobs:
             if (!approved_by_maintainer) {
               throw new Error('PR has not been approved by a maintainer.');
             }
-
+  setup-pipe:
+    runs-on: ubuntu-latest
+    outputs:
+      BUCKET_ORIGIN_PROD_NAME: ${{ steps.config-pipe.outputs.BUCKET_ORIGIN_TEST_NAME }}
+      AWS_ACCOUNT_PROD_ID: ${{ steps.config-pipe.outputs.AWS_ACCOUNT_TEST_ID }}
+      USER_EMAIL: ${{ steps.config-pipe.outputs.USER_EMAIL }}
+      NODE_VERSION: ${{ steps.config-pipe.outputs.NODE_VERSION }}
+    steps:
       - name: Set up Pipeline
         id: config-pipe
         run:
@@ -52,13 +59,15 @@ jobs:
           echo "AWS_ACCOUNT_PROD_ID=$AWS_ACCOUNT_PROD_ID" >> $GITHUB_ENV
           NODE_VERSION=$(grep NODE_VERSION .config | cut -d '=' -f 2)
           echo "NODE_VERSION=$NODE_VERSION" >> $GITHUB_ENV
-
+  aws-deployment:
+    runs-on: ubuntu-latest
+    needs: setup-pipe
+    steps: 
       - name: Install AWS CLI
         id: install-cli
-        needs: config-pipe
         run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
+          sudo snap install aws-cli --classic
+          aws --version
 
       - name: Assume Role
         id: assume-role
@@ -70,9 +79,10 @@ jobs:
       - name: AWS Deployment
         id: aws-deploy
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_PROD_ID }}
-          BUCKET_NAME: ${{ env.BUCKET_ORIGIN_PROD_NAME }}
+          AWS_ACCOUNT_ID: ${{ needs.setup-pipe.outputs.AWS_ACCOUNT_PROD_ID }}
+          BUCKET_NAME: ${{ needs.setup-pipe.outputs.BUCKET_ORIGIN_PROD_NAME }}
         run: |
+          echo "Provisioning the deployment on production evironment: $AWS_ACCOUNT_ID"
           cd app
           aws s3 sync . s3://$BUCKET_NAME
 
