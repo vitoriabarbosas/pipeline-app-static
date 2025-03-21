@@ -190,8 +190,13 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { execSync } = require('child_process');
-            execSync(`gh workflow approve --repo ${{ github.repository }}`);
+            const repo = process.env.GITHUB_REPOSITORY; 
+            if (!repo) {
+              console.error("Erro: A variável GITHUB_REPOSITORY não está definida.");
+              process.exit(1);
+            }
+
+            execSync(`gh workflow approve --repo ${repo}`, { stdio: 'inherit' });
 
       - name: Approval Pending
         run: echo "Waiting for maintainer approval..."
