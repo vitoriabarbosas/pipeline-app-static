@@ -1,6 +1,6 @@
 # Pipeline de Aplicação Estática
 
-![Fluxo da Pipeline de Aplicação, onde é possível entender a configuração dada a estrutura de repositório do usuario, iniciando um trigger no GitHub Actions, seguindo para o deploy na conta AWS. Este Deploy, necessita de um Bucket S3 pré existente, ao qual, poderá ser utilizado com a arquitetura sugerida: Route53, Certificado ACM, CloudFront com origem neste Bucket que irá conter os arquivos. Para garantir segurança, o CloudFront pode-se integrar com WAF e OAC, para que tenha acesso exclusivo ao Bucket.](/docs/desafio.jpg)
+![Fluxo da Pipeline de Aplicação, onde é possível entender a configuração dada a estrutura de repositório do usuario, iniciando um trigger no GitHub Actions, seguindo para o deploy na conta AWS. Este Deploy, necessita de um Bucket S3 pré existente, ao qual, poderá ser utilizado com a arquitetura sugerida: Route53, Certificado ACM, CloudFront com origem neste Bucket que irá conter os arquivos. Para garantir segurança, o CloudFront pode-se integrar com WAF e OAC, para que tenha acesso exclusivo ao Bucket.](/docs/poc.jpg)
 
 ## Requisitos 
 - Criação de Bucket S3 nas contas de teste e produção
@@ -24,8 +24,8 @@ nome-do-repo/
 
 Seu repositório deve conter os seguintes arquivos:
 - [.github](/.github): Contém todos os arquivos e estrutura dos workflows a serem seguidos pela pipeline
-- [/app](/exemplo/app/): Devem conter todos os arquivos necessários a serem deployados no bucket de origem
-- [.config](/exemplo/.config): Devem conter as informações necessárias a serem realizadas o deploy
+- [/app](/app/): Devem conter todos os arquivos necessários a serem deployados no bucket de origem
+- [.config](.config): Devem conter as informações necessárias a serem realizadas o deploy
 
 ## Entendendo o arquivo de Config
 Este arquivo, é o arquivo que deve conter todas as informações do deploy. Sendo assim, você **precisa** informar as seguintes variáveis:
@@ -43,9 +43,9 @@ NODE_VERSION=14
 
 ## Diagrama das etapas da Pipeline 
 
-![](/docs/diagrama.drawio.png)
+![](/docs/diagrama.png)
 
-[Clique aqui para acessar o arquivo do diagrama](/docs/diagrama.drawio)
+[Clique aqui para acessar o arquivo do diagrama](/docs/diagramas.drawio)
 
 
 
